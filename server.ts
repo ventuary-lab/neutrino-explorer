@@ -1,4 +1,6 @@
 const express = require('express');
+import { plot, Plot } from 'nodeplotlib';
+
 
 //setting up mongoose
 const mongoose = require('mongoose');
@@ -58,6 +60,27 @@ async function connectExplorerApi(nodeUrl, neutrinoContractAddress){
   }
 }
 
+async function findLastValue(title, cachedValue, res){
+  try {
+    let result = [];
+    await cachedValue.findOne({ title: title }).sort({ date: -1 }).exec((err, data) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log(data);
+        result.push(data.value);
+
+        console.log("Result:",result[0]);
+        res.status(200).send(result[0].toString());
+      }
+    });
+  }
+  catch(error){
+    console.log(error);
+    res.sendStatus(500);
+  }
+}
+
 let explorerApiObject;
 (async function (){
   explorerApiObject = await connectExplorerApi(nodeUrl, neutrinoContractAddress);
@@ -65,173 +88,15 @@ let explorerApiObject;
 
 
 // -----------Database requests--------------
-app.get('/api/get_current_price', async (req, res) => {
-  try {
-    let result = [];
-    await cachedValue.findOne({ title: "price" }).sort({ date: -1 }).exec((err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(data);
-        result.push(data.value);
+app.get('/api/get_current_price', async (req, res) => await findLastValue("price",cachedValue,res));
+app.get('/api/get_current_balance', async (req, res) => await findLastValue("balance",cachedValue,res));
+app.get('/api/get_total_issued', async (req, res) => await findLastValue("total_issued",cachedValue,res));
+app.get('/api/get_staked', async (req, res) => await findLastValue("staked",cachedValue,res));
+app.get('/api/get_annual_yield', async (req, res) => await findLastValue("annual_yield",cachedValue,res));
+app.get('/api/get_circulating_supply', async (req, res) => await findLastValue("circulating_supply",cachedValue,res));
+app.get('/api/get_deficit', async (req, res) => await findLastValue("deficit",cachedValue,res));
+app.get('/api/get_circulating_supply_no_dec', async (req, res) => await findLastValue("circulating_supply_no_dec",cachedValue,res));
 
-        console.log("Result:",result[0]);
-        res.status(200).send(result[0].toString());
-      }
-    });
-  }
-  catch(error){
-    console.log(error);
-    res.sendStatus(500);
-  }
-});
-
-app.get('/api/get_current_balance', async (req, res) => {
-  try {
-    let result = [];
-    await cachedValue.findOne({ title: "balance" }).sort({ date: -1 }).exec((err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(data);
-        result.push(data.value);
-
-        console.log("Result:",result[0]);
-        res.status(200).send(result[0].toString());
-      }
-    });
-  }
-  catch(error){
-    console.log(error);
-    res.sendStatus(500);
-  }
-});
-
-app.get('/api/get_total_issued', async (req, res) => {
-  try {
-    let result = [];
-    await cachedValue.findOne({ title: "total_issued" }).sort({ date: -1 }).exec((err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(data);
-        result.push(data.value);
-
-        console.log("Result:",result[0]);
-        res.status(200).send(result[0].toString());
-      }
-    });
-  }
-  catch(error){
-    console.log(error);
-    res.sendStatus(500);
-  }
-});
-
-app.get('/api/get_staked', async (req, res) => {
-  try {
-    let result = [];
-    await cachedValue.findOne({ title: "staked" }).sort({ date: -1 }).exec((err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(data);
-        result.push(data.value);
-
-        console.log("Result:",result[0]);
-        res.status(200).send(result[0].toString());
-      }
-    });
-  }
-  catch(error){
-    console.log(error);
-    res.sendStatus(500);
-  }
-});
-
-app.get('/api/get_annual_yield', async (req, res) => {
-  try {
-    let result = [];
-    await cachedValue.findOne({ title: "annual_yield" }).sort({ date: -1 }).exec((err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(data);
-        result.push(data.value);
-
-        console.log("Result:",result[0]);
-        res.status(200).send(result[0].toString());
-      }
-    });
-  }
-  catch(error){
-    console.log(error);
-    res.sendStatus(500);
-  }
-});
-
-app.get('/api/get_circulating_supply', async (req, res) => {
-  try {
-    let result = [];
-    await cachedValue.findOne({ title: "circulating_supply" }).sort({ date: -1 }).exec((err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(data);
-        result.push(data.value);
-
-        console.log("Result:",result[0]);
-        res.status(200).send(result[0].toString());
-      }
-    });
-  }
-  catch(error){
-    console.log(error);
-    res.sendStatus(500);
-  }
-});
-
-app.get('/api/get_deficit', async (req, res) => {
-  try {
-    let result = [];
-    await cachedValue.findOne({ title: "deficit" }).sort({ date: -1 }).exec((err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(data);
-        result.push(data.value);
-
-        console.log("Result:",result[0]);
-        res.status(200).send(result[0].toString());
-      }
-    });
-  }
-  catch(error){
-    console.log(error);
-    res.sendStatus(500);
-  }
-});
-
-app.get('/api/get_circulating_supply_no_dec', async (req, res) => {
-  try {
-    let result = [];
-    await cachedValue.findOne({ title: "circulating_supply_no_dec" }).sort({ date: -1 }).exec((err, data) => {
-      if (err) {
-        console.log(err);
-      } else {
-        console.log(data);
-        result.push(data.value);
-
-        console.log("Result:",result[0]);
-        res.status(200).send(result[0].toString());
-      }
-    });
-  }
-  catch(error){
-    console.log(error);
-    res.sendStatus(500);
-  }
-});
 
 // ---------------node request api methods-------------------
 app.get('/api/get_decimals', async (req, res) => {
@@ -245,6 +110,18 @@ app.get('/api/get_decimals', async (req, res) => {
     res.sendStatus(500);
   }
 });
+
+// app.get('/api/get_historic_decimals', async (req, res) => {
+//   try {
+//     let result = await explorerApiObject.getHistoricDecimals();
+//
+//     res.status(200).send(result.toString());
+//   }
+//   catch(error){
+//     console.log(error);
+//     res.sendStatus(500);
+//   }
+// });
 
 app.get('/api/get_price_blocks', async (req, res) => {
   try {

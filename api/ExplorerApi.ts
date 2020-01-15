@@ -152,11 +152,48 @@ export class ExplorerApi {
       return<number>(totalIssued - reserve*price);
     }
 
+    public async getHistoricDeficit():Promise<number>{
+      let startBlock = 1884500;
+      let endBlock = 1884771;
+      let prefix = "price_";
+
+      let returnArray = [];
+
+      for (let i = startBlock; i <= endBlock; i++) {
+        let key = prefix+i;
+        let priceObject = (await nodeInteraction.accountDataByKey(key,this.controlContractAddress,this.nodeUrl));
+
+        try{
+          let objKey = String(i);
+          if (priceObject == null) {
+            returnArray.push({[objKey]:null});
+          } else {
+            returnArray.push({[objKey]:priceObject.value});
+          }
+        } catch(e){
+          console.log(e);
+        }
+      }
+      const assetObject = await axios.get(this.nodeUrl+'assets/details/'+this.neutrinoAssetId);
+      const assetQuantity = assetObject.data.quantity;
+      const assetDecimals = 6;
+
+      const neutrinoBalance = await nodeInteraction.assetBalance(this.neutrinoAssetId, this.neutrinoContractAddress, this.nodeUrl)/(10**assetDecimals);
+      const liquidationBalance = await nodeInteraction.assetBalance(this.neutrinoAssetId, this.liquidationContractAddress, this.nodeUrl)/(10**assetDecimals);
+
+
+      const balanceLockNeutrino = Number((await nodeInteraction.accountDataByKey("balance_lock_neutrino", this.neutrinoContractAddress, this.nodeUrl)).value)/(10**assetDecimals);
+
+      return <number>(10**12-neutrinoBalance-liquidationBalance+Number(balanceLockNeutrino));
+    }
+
     public async getDecimals():Promise<number>{
       const assetObject = await axios.get(this.nodeUrl+'assets/details/'+this.neutrinoAssetId);
       const assetDecimals = assetObject.data.decimals;
 
       return <number>(assetDecimals);
     }
+
+
 
 }
