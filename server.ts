@@ -8,11 +8,12 @@ mongoose.connect('mongodb://127.0.0.1:27017/', {useNewUrlParser: true, useUnifie
 let db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
 db.once('open', function() {
-  console.log("Database is connected");
+  console.log("Database is connected.");
 });
 let cachedValueSchema = new mongoose.Schema({
   title: String,
   value: Number,
+  blockHeight: Number,
   date: {type: Date, default: Date.now}
 });
 let cachedValue = mongoose.model('cachedValue', cachedValueSchema);
@@ -37,14 +38,16 @@ async function removeAllFromDB(model){
 
 async function updateDB(title,value){
   try {
+    let blockHeight = await explorerApiObject.getBlockchainHeight();
     let newCachedValue = new cachedValue({
       title: title,
-      value: value
+      value: value,
+      blockHeight: blockHeight
     });
 
     newCachedValue.save(function(err,newCachedValue){
       if (err) return console.error(err);
-      console.log("Saved newCachedValue in DB");
+      console.log("Saved a new " + title + " value in DB.");
     });
 
   } catch(error){
@@ -111,17 +114,17 @@ app.get('/api/get_decimals', async (req, res) => {
   }
 });
 
-// app.get('/api/get_historic_decimals', async (req, res) => {
-//   try {
-//     let result = await explorerApiObject.getHistoricDecimals();
-//
-//     res.status(200).send(result.toString());
-//   }
-//   catch(error){
-//     console.log(error);
-//     res.sendStatus(500);
-//   }
-// });
+app.get('/api/get_historic_deficit', async (req, res) => {
+  try {
+    let result = await explorerApiObject.getHistoricDeficit();
+
+    res.status(200).send(result.toString());
+  }
+  catch(error){
+    console.log(error);
+    res.sendStatus(500);
+  }
+});
 
 app.get('/api/get_price_blocks', async (req, res) => {
   try {
@@ -145,36 +148,42 @@ app.get('/api/get_price_blocks', async (req, res) => {
 (async function (){
   try {
     const explorerApiObject = await connectExplorerApi(nodeUrl, neutrinoContractAddress);
+    let height = await explorerApiObject.getBlockchainHeight();
+    //console.log("height: ", height);
 
     setInterval(async function(){
-      console.log("Starting updating DB");
-      let price = await explorerApiObject.getPrice();
-      await updateDB("price",price);
+      let newHeight = await explorerApiObject.getBlockchainHeight();
+      //console.log("newHeight: ", newHeight);
+      if (newHeight>height) {
+          height = newHeight;
 
-      let balance = await explorerApiObject.getBalance();
-      await updateDB("balance",balance);
+          console.log("Block height has changed. Starting DB update at " + newHeight + " height...");
+          let price = await explorerApiObject.getPrice();
+          await updateDB("price",price);
 
-      let total_issued = await explorerApiObject.getTotalIssued();
-      await updateDB("total_issued",total_issued);
+          let balance = await explorerApiObject.getBalance();
+          await updateDB("balance",balance);
 
-      let staked = await explorerApiObject.getStaked();
-      await updateDB("staked",staked);
+          let total_issued = await explorerApiObject.getTotalIssued();
+          await updateDB("total_issued",total_issued);
 
-      let annual_yield = await explorerApiObject.getAnnualYield();
-      await updateDB("annual_yield",annual_yield);
+          let staked = await explorerApiObject.getStaked();
+          await updateDB("staked",staked);
 
-      let circulating_supply = await explorerApiObject.getCirculatingSupply();
-      await updateDB("circulating_supply",circulating_supply);
+          let annual_yield = await explorerApiObject.getAnnualYield();
+          await updateDB("annual_yield",annual_yield);
 
-      let deficit = await explorerApiObject.getDeficit();
-      await updateDB("deficit", deficit);
+          let circulating_supply = await explorerApiObject.getCirculatingSupply();
+          await updateDB("circulating_supply",circulating_supply);
 
-      let circulating_supply_no_dec = await explorerApiObject.getCirculatingSupplyNoDec();
-      await updateDB("circulating_supply_no_dec",circulating_supply_no_dec);
-    }, 60*1000);
+          let deficit = await explorerApiObject.getDeficit();
+          await updateDB("deficit", deficit);
 
-  }
-  catch(error){
+          let circulating_supply_no_dec = await explorerApiObject.getCirculatingSupplyNoDec();
+          await updateDB("circulating_supply_no_dec",circulating_supply_no_dec);
+        }
+      }, 5*1000);
+    } catch(error){
     console.log(error);
   }
 })();
